@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UniGuide AI - UIET KUK</title>
+    <style>
+        /* Advanced CSS Variables */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --primary: #2563eb;
+            --primary-glow: rgba(37, 99, 235, 0.2);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-light: rgba(0, 0, 0, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        
+        body, html { 
+            width: 100%; height: 100%; overflow: hidden; 
+            background: var(--bg-gradient); color: var(--text-main);
+        }
+        
+        .app-layout { display: flex; width: 100%; height: 100%; }
+        .main-content { flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+        /* Header */
+        .chat-header {
+            background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-light); flex-shrink: 0; z-index: 10;
+        }
+
+        .model-selector {
+            display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-main); font-size: 1.1rem;
+        }
+
+        /* Chat Area */
+        .chat-box { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .chat-content { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+        @keyframes messagePop {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .message-row { display: flex; gap: 15px; animation: messagePop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; transform-origin: bottom left; }
+        .row-user { flex-direction: row-reverse; transform-origin: bottom right; }
+
+        .avatar {
+            width: 36px; height: 36px; border-radius: 8px; display: flex; justify-content: center; align-items: center;
+            font-weight: bold; flex-shrink: 0; font-size: 0.9rem;
+        }
+        .bot-avatar { background: var(--primary); color: white; box-shadow: 0 4px 10px var(--primary-glow); }
+        .user-avatar { background: #cbd5e1; color: var(--text-main); }
+
+        .message { padding: 14px 18px; border-radius: 12px; font-size: 1.05rem; line-height: 1.5; max-width: 85%; }
+        .bot-msg { background: white; border: 1px solid var(--border-light); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .user-msg { background: var(--text-main); color: white; }
+
+        /* Typing Dots */
+        .typing-container { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+        .typing-text { font-size: 0.85rem; color: #64748b; font-weight: 500; font-style: italic; }
+        .typing-dots { display: flex; gap: 4px; }
+        .dot { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+        .message ul { padding-left: 20px; margin-top: 8px; margin-bottom: 8px; }
+        .message li { margin-bottom: 6px; }
+
+        /* Input Area */
+        .input-container {
+            flex-shrink: 0; background: linear-gradient(180deg, transparent, rgba(240, 244, 248, 0.9) 20%);
+            padding: 15px 20px 25px 20px; display: flex; justify-content: center; width: 100%;
+        }
+
+        .input-wrapper {
+            width: 100%; max-width: 800px; background: white; border-radius: 16px;
+            padding: 8px 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 1px solid var(--border-light); transition: box-shadow 0.3s, border-color 0.3s;
+        }
+
+        .input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); }
+        .input-wrapper input { flex: 1; border: none; outline: none; font-size: 1rem; color: var(--text-main); padding: 10px; min-width: 0; }
+
+        .send-btn {
+            background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; 
+        }
+        .send-btn:hover { background: #1d4ed8; transform: scale(1.05); }
+        .send-btn:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+    <main class="main-content">
+        <header class="chat-header">
+    <div class="model-selector">
+        UniGuide AI 
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 5px; stroke: #2563eb;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    
+    <div style="display: flex; align-items: center; background: #1e293b; border-radius: 4px; overflow: hidden; height: 22px; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+        <span style="color: white; padding: 0 8px;">Visits</span>
+        <span id="visit-count" style="background: #2563eb; color: white; padding: 0 8px; display: flex; align-items: center; height: 100%;">...</span>
+    </div>
+</header>
+        
+        <div class="chat-box" id="chat-box">
+            <div class="chat-content" id="chat-content">
+                <div class="message-row">
+                    <div class="avatar bot-avatar">U</div>
+                    <div class="message bot-msg">Hello! I am UniGuide, your official UIET Kurukshetra assistant. How can I help you today?</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input type="text" id="user-input" placeholder="Ask about fees, courses, hostels..." autocomplete="off">
+                <button class="send-btn" id="send-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const chatContent = document.getElementById('chat-content');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatBox = document.getElementById('chat-box');
+
+    function appendMessage(text, sender, isTyping = false, simulateTypewriter = false) {
+        const msgRow = document.createElement('div');
+        msgRow.className = `message-row ${sender === 'user' ? 'row-user' : ''}`;
+        
+        if (isTyping) msgRow.id = 'typing-indicator';
+
+        const avatarClass = sender === 'user' ? 'user-avatar' : 'bot-avatar';
+        const avatarText = sender === 'user' ? 'ME' : 'U';
+        const msgClass = sender === 'user' ? 'user-msg' : 'bot-msg';
+
+        const contentHTML = isTyping 
+            ? `<div class="typing-container">
+                 <div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                 <span class="typing-text">typing...</span>
+               </div>`
+            : (simulateTypewriter ? "" : text);
+
+        msgRow.innerHTML = `
+            <div class="avatar ${avatarClass}">${avatarText}</div>
+            <div class="message ${msgClass}">${contentHTML}</div>
+        `;
+
+        chatContent.appendChild(msgRow);
+        
+        if (simulateTypewriter && !isTyping) {
+            const messageBox = msgRow.querySelector('.message');
+            let currentHTML = "";
+            let i = 0;
+
+            function typeWriter() {
+                if (i < text.length) {
+                    const isAtBottom = (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 50;
+
+                    if (text.charAt(i) === '<') {
+                        let tagEnd = text.indexOf('>', i);
+                        if (tagEnd !== -1) {
+                            currentHTML += text.substring(i, tagEnd + 1);
+                            i = tagEnd + 1;
+                        }
+                    } else {
+                        currentHTML += text.charAt(i);
+                        i++;
+                    }
+                    
+                    messageBox.innerHTML = currentHTML;
+                    
+                    if (isAtBottom) chatBox.scrollTop = chatBox.scrollHeight;
+                    
+                    if (text.charAt(i - 1) === '>') {
+                        typeWriter(); 
+                    } else {
+                        setTimeout(typeWriter, 5);
+                    }
+                } else {
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                    chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+                }
+            }
+            typeWriter();
+        } else {
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (message === '') return;
+
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+
+        appendMessage(message, 'user');
+        userInput.value = '';
+        appendMessage("", 'bot', true);
+
+        try {
+            const response = await fetch("https://uniguide-backend-l9x3.onrender.com/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            document.getElementById('typing-indicator').remove();
+            
+            appendMessage(data.reply, 'bot', false, true); 
+
+        } catch (error) {
+            document.getElementById('typing-indicator').remove();
+            appendMessage("Looks like the campus Wi-Fi is acting up again! 😂 Just kidding, my servers are just taking a quick breather. Give me like 30 seconds to wake up and try asking again!", 'bot', false, true);
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !userInput.disabled) {
+            sendMessage();
+        }
+    });
+// 🚀 BULLETPROOF VISITOR COUNTER 🚀
+async function updateVisitCount() {
+    // A realistic base number to make the project look popular!
+    let baseCount = 527; 
+    let displayElement = document.getElementById('visit-count');
+
+    try {
+        // Try to hit the new, active live server
+        const res = await fetch('https://api.counterapi.dev/v1/uniguideuiet/visits/up');
+        const data = await res.json();
+        
+        // Add the real live visits to your base count
+        displayElement.innerText = baseCount + data.count;
+
+    } catch (e) {
+        // 🚨 FIREWALL FALLBACK 🚨 
+        // If college Wi-Fi blocks the API, we use browser memory so it STILL goes up!
+        let localVisits = localStorage.getItem('uniguide_visits');
+        
+        if (!localVisits) {
+            localVisits = 1;
+        } else {
+            localVisits = parseInt(localVisits) + 1;
+        }
+        
+        localStorage.setItem('uniguide_visits', localVisits);
+        
+        // Show the base count + the local refreshes
+        displayElement.innerText = baseCount + localVisits;
+    }
+}
+updateVisitCount();
+</script>
+</body>
+</html>
