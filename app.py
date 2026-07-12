@@ -8,7 +8,7 @@ CORS(app) # This lets your index.html talk to this Python file
 
 # 2. Connect to Google Gemini
 # IMPORTANT: Put your real API key in the quotes below!
-API_KEY = "AIzaSyBRs_RqJoIN7cDFXYE9OkXwtv77UT07MgE" 
+api_key = os.getenv("API_KEY") 
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash') 
 
